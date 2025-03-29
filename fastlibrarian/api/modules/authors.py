@@ -23,6 +23,12 @@ async def get_authors(
     return result.scalars().all()
 
 
+async def search(db: AsyncSession, name: str) -> list[AuthorModel]:
+    """Find an author by name."""
+    result = await db.execute(select(AuthorModel).filter(AuthorModel.name == name))
+    return result.scalars().all()
+
+
 async def create_author(db: AsyncSession, author: AuthorCreate) -> AuthorModel:
     """Create a new author."""
     db_author = AuthorModel(**author.model_dump())
@@ -30,4 +36,3 @@ async def create_author(db: AsyncSession, author: AuthorCreate) -> AuthorModel:
     await db.commit()
     await db.refresh(db_author)
     return db_author
-

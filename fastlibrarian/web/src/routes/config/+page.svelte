@@ -114,31 +114,41 @@
 				</label>
 				<label>
 					Auto Backup:
-                    {:else if activeTab === 'import'}
-                        <section>
-                            <h2>Import Settings</h2>
-                            <label>
-                                Import Type:
-                                <select bind:value={importSettings.type}>
-                                    <option value="readarr">Readarr</option>
-                                    <option value="lazylibrarian">LazyLibrarian</option>
-                                </select>
-                            </label>
-                            <label>
-                                URL:
-                                <input type="text" bind:value={importSettings.url} />
-                            </label>
-                            <label>
-                                API Key:
-                                <input type="password" bind:value={importSettings.apiKey} />
-                            </label>
-                        </section>
+					<input type="checkbox" bind:checked={backupSettings.autoBackup} />
 				</label>
-				<div class="button-group">
-					<button on:click={importConfig}>Import Configuration</button>
-					<button on:click={restoreConfig}>Restore Configuration</button>
-				</div>
+				<label>
+					Backup Frequency:
+					<select bind:value={backupSettings.backupFrequency}>
+						<option value="daily">Daily</option>
+						<option value="weekly">Weekly</option>
+						<option value="monthly">Monthly</option>
+					</select>
+				</label>
 			</section>
+		{:else if activeTab === 'import'}
+			<section>
+				<h2>Import Settings</h2>
+				<label>
+					Import Type:
+					<select bind:value={importSettings.type}>
+						<option value="readarr">Readarr</option>
+						<option value="lazylibrarian">LazyLibrarian</option>
+					</select>
+				</label>
+				<label>
+					URL:
+					<input type="text" bind:value={importSettings.url} />
+				</label>
+				<label>
+					API Key:
+					<input type="password" bind:value={importSettings.apiKey} />
+				</label>
+			</section>
+
+			<div class="button-group">
+				<button on:click={importConfig}>Import Configuration</button>
+				<button on:click={restoreConfig}>Restore Configuration</button>
+			</div>
 		{:else if activeTab === 'api'}
 			<section>
 				<h2>API Keys</h2>

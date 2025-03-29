@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { api, type Author } from '$lib/api/client';
+	import { api } from '$lib/api/client';
 	import Nav from '$lib/components/Nav.svelte';
 	import { goto } from '$app/navigation';
 
@@ -11,11 +11,10 @@
 		try {
 			loading = true;
 			error = null;
-			const author = await api.createAuthor({ name });
-			goto(`/authors/${author.id}`);
+			await goto(`/authors/find?name=${encodeURIComponent(name)}`);
 		} catch (e) {
-			console.error('Error creating author:', e);
-			error = 'Failed to create author';
+			console.error('Error searching for author:', e);
+			error = 'Failed to search for author';
 		} finally {
 			loading = false;
 		}
@@ -52,7 +51,7 @@
 					disabled={loading}
 					class="w-full rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
 				>
-					{loading ? 'Creating...' : 'Create Author'}
+					{loading ? 'Searching...' : 'Find Author'}
 				</button>
 			</div>
 		</form>

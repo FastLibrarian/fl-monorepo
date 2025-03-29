@@ -3,30 +3,35 @@ from pydantic import BaseModel, HttpUrl
 
 class IndustryIdentifier(BaseModel):
     """Industry standard identifiers for books, such as ISBN-10, ISBN-13, or ISSN."""
+
     type: str
     identifier: str
 
 
 class ReadingModes(BaseModel):
     """Available reading modes for the volume."""
+
     text: bool
     image: bool
 
 
 class PanelizationSummary(BaseModel):
     """Information about comic-specific content formatting."""
+
     containsEpubBubbles: bool
     containsImageBubbles: bool
 
 
 class ImageLinks(BaseModel):
     """URLs to book cover images in different sizes."""
+
     smallThumbnail: HttpUrl
     thumbnail: HttpUrl
 
 
 class VolumeInfo(BaseModel):
     """Detailed information about a book volume."""
+
     title: str
     subtitle: str | None = None
     authors: list[str] | None = None
@@ -41,7 +46,7 @@ class VolumeInfo(BaseModel):
     maturityRating: str
     allowAnonLogging: bool
     contentVersion: str
-    panelizationSummary: PanelizationSummary
+    panelizationSummary: PanelizationSummary | None = None
     imageLinks: ImageLinks | None = None
     language: str
     previewLink: HttpUrl
@@ -51,12 +56,14 @@ class VolumeInfo(BaseModel):
 
 class ListPrice(BaseModel):
     """Price information for a volume."""
+
     amount: float
     currencyCode: str
 
 
 class SaleInfo(BaseModel):
     """Sales-related information for the volume."""
+
     country: str
     saleability: str
     isEbook: bool
@@ -67,12 +74,14 @@ class SaleInfo(BaseModel):
 
 class Epub(BaseModel):
     """Information about EPUB or PDF availability and access."""
+
     isAvailable: bool
     acsTokenLink: HttpUrl | None = None
 
 
 class AccessInfo(BaseModel):
     """Access and availability information for the volume."""
+
     country: str
     viewability: str
     embeddable: bool
@@ -87,6 +96,7 @@ class AccessInfo(BaseModel):
 
 class Volume(BaseModel):
     """Complete volume information combining metadata, sales, and access details."""
+
     kind: str
     id: str
     etag: str
@@ -99,6 +109,7 @@ class Volume(BaseModel):
 
 class GoogleBooksResponse(BaseModel):
     """Response structure from the Google Books API containing search results."""
+
     kind: str
     totalItems: int
     items: list[Volume]
