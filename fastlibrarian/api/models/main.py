@@ -1,51 +1,55 @@
-from sqlalchemy import (
-    Column,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-)
+"""Setup models for the database."""
+
+from sqlalchemy import Column, Date, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+
+from fastlibrarian.api.database import Base
 
 
-class Issue(Base):
-    __tablename__ = "issues"
+class BookModel(Base):
+    """Book model for the database."""
 
-    Title = Column(String, ForeignKey("magazines.Title", ondelete="CASCADE"))
-    IssueID = Column(String, primary_key=True, unique=True)
+    __tablename__ = "books"
 
-
-class Download(Base):
-    __tablename__ = "downloads"
-
-    Count = Column(Integer, default=0)
-    Provider = Column(String, primary_key=True)
-
-
-class SeriesAuthor(Base):
-    __tablename__ = "seriesauthors"
-
-    SeriesID = Column(String, primary_key=True)
-    AuthorID = Column(
-        String, ForeignKey("authors.AuthorID", ondelete="CASCADE"), primary_key=True
-    )
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    author = Column(String)
+    published_date = Column(Date)
+    isbn = Column(String, unique=True)
+    pages = Column(Integer)
+    cover_image = Column(String)
+    language = Column(String)
+    series_id = Column(Integer, ForeignKey("series.id"))
+    series = relationship("SeriesModel", back_populates="books")
 
 
-class Member(Base):
-    __tablename__ = "member"
+class AuthorModel(Base):
+    """Author model for the database."""
 
-    __table_args__ = (
-        UniqueConstraint("SeriesID", "BookID"),
-        Index("unq", "SeriesID", "BookID"),
-    )
+    __tablename__ = "authors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    books = relationship("BookModel", back_populates="author")
 
 
-class Subscriber(Base):
-    __tablename__ = "subscribers"
+class UserModel(Base):
+    """User model for the database."""
 
-    UserID = Column(
-        String, ForeignKey("users.UserID", ondelete="CASCADE"), primary_key=True
-    )
-    Type = Column(String, primary_key=True)
-    WantID = Column(Text)  # Changed to Text to match schema
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    books = relationship("BookModel", back_populates="user")
+
+
+class SeriesModel(Base):
+    """Series model for the database."""
+
+    __tablename__ = "series"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    books = relationship("BookModel", back_populates="series")
