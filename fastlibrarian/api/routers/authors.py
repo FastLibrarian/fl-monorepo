@@ -4,6 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastlibrarian.api.database import get_session
+from fastlibrarian.api.external.google_books import (
+    GoogleBooks,
+    GoogleBooksResponse,
+    conversion,
+)
 from fastlibrarian.api.modules import authors
 from fastlibrarian.api.schemas.author import Author, AuthorCreate
 
@@ -52,3 +57,29 @@ async def update_author(
         return updated_author
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/gbooks_create/{term}", response_model=Author)
+async def create_author_from_gbooks(author: str):
+    """Create an author from Google Books API."""
+    gbooks = GoogleBooks()
+    result: GoogleBooksResponse = await gbooks.get_author(author)
+
+    if not gbooks:
+        raise HTTPException(status_code=404, detail="Author not found in Google Books")
+    fl_author = conversion.volume_to_author(result.items[0])
+    if not fl_author:
+        raise HTTPException(status_code=404, detail="Author not found in Google Books")
+    author = await create_author(fl_author, db=Depends(get_session))
+
+
+@router.get("/gbooks_search/{term}", response_model=list[Author])
+async def find_from_google(term: str) -> GoogleBooksResponse:
+    """Search for authors, books, etc using Google Books API."""
+    gbooks = GoogleBooks()
+    result: GoogleBooksResponse = await gbooks.search(term)
+    for item in result:
+        author = conversion.volume_to_author(item)
+    if not result:
+        raise HTTPException(status_code=404, detail="No results found")
+    return result

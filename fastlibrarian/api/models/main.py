@@ -21,6 +21,7 @@ class BookModel(Base):
     language = Column(String)
     series_id = Column(Integer, ForeignKey("series.id"))
     series = relationship("SeriesModel", back_populates="books")
+    description = Column(String)
 
 
 class AuthorModel(Base):

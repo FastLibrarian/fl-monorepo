@@ -16,6 +16,7 @@ class BookBase(BaseModel):
     cover_image: str | None = None
     language: str
     series_id: int | None = None
+    description: str | None = None
 
 
 class BookCreate(BookBase):
