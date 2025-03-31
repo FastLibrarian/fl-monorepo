@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel
 
+from .book import Book
+
 
 class AuthorBase(BaseModel):
     """Base author schema."""
@@ -18,6 +20,8 @@ class Author(AuthorBase):
 
     id: int
     book_count: int | None = None
+    biography: str | None = None
+    books: list[Book] | None = None
 
     class Config:
         """Pydantic config."""

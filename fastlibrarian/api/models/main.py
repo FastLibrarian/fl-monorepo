@@ -13,7 +13,8 @@ class BookModel(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
-    author = Column(String)
+    author_id = Column(Integer, ForeignKey("authors.id"))
+    author = relationship("AuthorModel", back_populates="books")
     published_date = Column(Date)
     isbn = Column(String, unique=True)
     pages = Column(Integer)
@@ -31,6 +32,7 @@ class AuthorModel(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
+    biography = Column(String, nullable=True)
     books = relationship("BookModel", back_populates="author")
 
 

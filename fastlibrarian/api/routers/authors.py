@@ -5,6 +5,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastlibrarian.api.database import get_session
+from fastlibrarian.api.external.audible.main import Audible
 from fastlibrarian.api.external.google_books import (
     GoogleBooks,
     GoogleBooksResponse,
@@ -34,8 +35,14 @@ async def create_author(author: AuthorCreate, db: AsyncSession = Depends(get_ses
 
 
 @router.get("/findauthor", response_model=list[Author])
-async def find_author(name: str, db: AsyncSession = Depends(get_session)):
+async def find_author(
+    name: str,
+    db: AsyncSession = Depends(get_session),
+) -> list[Author]:
     """Find an author by name."""
+    results = []
+
+    # Try Google Books first
     google_results = await find_from_google(name)
     logger.debug("Google Results:")
     logger.debug(google_results)
@@ -43,11 +50,19 @@ async def find_author(name: str, db: AsyncSession = Depends(get_session)):
     openlibrary_results = await find_from_openlibrary(name)
     logger.debug("OpenLibrary Results:")
     logger.debug(openlibrary_results)
+    audible_results = await find_from_audible(name)
+    print(audible_results)
+    # Deduplicate results based on name
+    seen_names = set()
+    unique_results = []
+    for author in results:
+        if author.name not in seen_names:
+            seen_names.add(author.name)
+            unique_results.append(author)
 
-    result = google_results
-    if not result:
+    if not unique_results:
         raise HTTPException(status_code=404, detail="No results found")
-    return result
+    return unique_results
 
 
 @router.post("/gbooks_create/{term}", response_model=Author)
@@ -64,17 +79,31 @@ async def create_author_from_gbooks(author: str):
     author = await create_author(fl_author, db=Depends(get_session))
 
 
+@router.get("audible_search/{term}", response_model=list[Author])
+async def find_from_audible(term: str) -> list[Author]:
+    """Search for authors using Audible API."""
+    audible = Audible()
+    result = await audible.search_audible(term)
+    if not result:
+        raise HTTPException(status_code=404, detail="No results found")
+    return result
+
+    raise HTTPException(status_code=404, detail="No results found")
+
+
 @router.get("/gbooks_search/{term}", response_model=list[Author])
 async def find_from_google(term: str) -> list[Author]:
     """Search for authors, books, etc using Google Books API."""
     gbooks = GoogleBooks()
-    result: GoogleBooksResponse = await gbooks.search(term)
+    result: GoogleBooksResponse = await gbooks.get_author(term)
     authors = []
     books = []
     for item in result.items:
         author = gbc.volume_to_author(item)
         if author:
             authors.append(author)
+            print(authors)
+            return authors
 
 
 @router.get("/openlibrary_search/{term}", response_model=list[Author])

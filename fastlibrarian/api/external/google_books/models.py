@@ -39,34 +39,34 @@ class VolumeInfo(BaseModel):
     publishedDate: str | None = None
     description: str | None = None
     industryIdentifiers: list[IndustryIdentifier] | None = None
-    readingModes: ReadingModes
+    readingModes: ReadingModes | None = None
     pageCount: int | None = None
-    printType: str
+    printType: str | None = None
     categories: list[str] | None = None
-    maturityRating: str
-    allowAnonLogging: bool
-    contentVersion: str
+    maturityRating: str | None = None
+    allowAnonLogging: bool | None = None
+    contentVersion: str | None = None
     panelizationSummary: PanelizationSummary | None = None
     imageLinks: ImageLinks | None = None
-    language: str
-    previewLink: HttpUrl
-    infoLink: HttpUrl
-    canonicalVolumeLink: HttpUrl
+    language: str | None = None
+    previewLink: HttpUrl | None = None
+    infoLink: HttpUrl | None = None
+    canonicalVolumeLink: HttpUrl | None = None
 
 
 class ListPrice(BaseModel):
     """Price information for a volume."""
 
-    amount: float
-    currencyCode: str
+    amount: float | None = None
+    currencyCode: str | None = None
 
 
 class SaleInfo(BaseModel):
     """Sales-related information for the volume."""
 
-    country: str
-    saleability: str
-    isEbook: bool
+    country: str | None = None
+    saleability: str | None = None
+    isEbook: bool | None = None
     listPrice: ListPrice | None = None
     retailPrice: ListPrice | None = None
     buyLink: HttpUrl | None = None
@@ -75,23 +75,23 @@ class SaleInfo(BaseModel):
 class Epub(BaseModel):
     """Information about EPUB or PDF availability and access."""
 
-    isAvailable: bool
+    isAvailable: bool | None = None
     acsTokenLink: HttpUrl | None = None
 
 
 class AccessInfo(BaseModel):
     """Access and availability information for the volume."""
 
-    country: str
-    viewability: str
-    embeddable: bool
-    publicDomain: bool
-    textToSpeechPermission: str
-    epub: Epub
-    pdf: Epub
-    webReaderLink: HttpUrl
-    accessViewStatus: str
-    quoteSharingAllowed: bool
+    country: str | None = None
+    viewability: str | None = None
+    embeddable: bool | None = None
+    publicDomain: bool | None = None
+    textToSpeechPermission: str | None = None
+    epub: Epub | None = None
+    pdf: Epub | None = None
+    webReaderLink: HttpUrl | None = None
+    accessViewStatus: str | None = None
+    quoteSharingAllowed: bool | None = None
 
 
 class Volume(BaseModel):
@@ -100,16 +100,16 @@ class Volume(BaseModel):
     kind: str
     id: str
     etag: str
-    selfLink: HttpUrl
-    volumeInfo: VolumeInfo
-    saleInfo: SaleInfo
-    accessInfo: AccessInfo
+    selfLink: HttpUrl | None = None
+    volumeInfo: VolumeInfo | None = None
+    saleInfo: SaleInfo | None = None
+    accessInfo: AccessInfo | None = None
     searchInfo: dict | None = None
 
 
 class GoogleBooksResponse(BaseModel):
     """Response structure from the Google Books API containing search results."""
 
-    kind: str
+    kind: str | None = None
     totalItems: int
     items: list[Volume]

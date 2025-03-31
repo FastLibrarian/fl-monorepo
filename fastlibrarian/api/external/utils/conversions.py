@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from fastlibrarian.api.external.google_books.models import Volume
-from fastlibrarian.api.schemas.author import AuthorCreate
+from fastlibrarian.api.schemas.author import Author
 from fastlibrarian.api.schemas.book import BookCreate
 
 
@@ -52,11 +52,16 @@ class GBooksConversions:
         )
 
     @staticmethod
-    def volume_to_author(volume: Volume) -> AuthorCreate:
-        """Convert Google Books Volume author information to FastLibrarian AuthorCreate model."""
+    def volume_to_author(volume: Volume) -> Author:
+        """Convert Google Books Volume author information to FastLibrarian Author model."""
         info = volume.volumeInfo
-        return AuthorCreate(
+        # Temporary ID assignment for external authors - using negative numbers to avoid conflicts
+        print(info)
+        return Author(
+            id=-1,  # Temporary ID for external results
             name=info.authors[0] if info.authors else "Unknown Author",
+            book_count=None,
+            biography=None,
         )
 
 

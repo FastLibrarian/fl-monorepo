@@ -16,6 +16,7 @@ psycopg2 = "^2.9.10"
 uvicorn = "^0.34.0"
 httpx = "^0.28.1"
 loguru = "^0.7.3"
+beautifulsoup4 = "^4.13.3"
 
 
 [build-system]
