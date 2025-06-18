@@ -6,13 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Database configuration
 DATABASE_URL = "postgresql+asyncpg://user:password@localhost/testdb"
 
-# Create engine
+
 engine = create_async_engine(DATABASE_URL, echo=True)
 
-# Create a configured "Session" class
+
 SessionLocal = sessionmaker(
     engine,
     class_=AsyncSession,
@@ -21,7 +20,6 @@ SessionLocal = sessionmaker(
     autoflush=False,
 )
 
-# Create a Base class for models
 Base = declarative_base()
 
 
