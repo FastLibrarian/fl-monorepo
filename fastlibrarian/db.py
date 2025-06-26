@@ -1,39 +1,57 @@
-"""Database setup and initialization for FastLibrarian API."""
+"""Database configuration and session management."""
 
+import os
 from collections.abc import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import MetaData
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "postgresql+asyncpg://user:password@localhost/testdb"
+# Database URL from environment variable with fallback
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+asyncpg://fastlib:fastpassword@localhost:5433/fastlibrarian",
+)
 
+# Create async engine
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=True,  # Set to False in production
+    future=True,
+)
 
-engine = create_async_engine(DATABASE_URL, echo=True)
-
-
-SessionLocal = sessionmaker(
+# Create async session maker
+AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False,
-    autocommit=False,
-    autoflush=False,
 )
 
-Base = declarative_base()
+# Create base class for models
+metadata = MetaData()
+Base = declarative_base(metadata=metadata)
 
 
-async def init_db() -> None:
-    """Initialize database by creating all tables."""
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Dependency to get database session."""
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
+async def create_tables() -> None:
+    """Create all tables in the database."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Get database session.
-
-    Yields:
-        AsyncSession: Database session
-    """
-    async with SessionLocal() as session:
-        yield session
+async def drop_tables() -> None:
+    """Drop all tables in the database."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
