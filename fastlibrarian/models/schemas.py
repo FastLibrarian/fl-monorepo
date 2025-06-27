@@ -36,7 +36,7 @@ class BookBase(BaseModel):
     author_id: UUID
     description: str | None = None
     series_id: UUID | None = None
-    editions: dict | None = None
+    editions: list[dict] | None = None
     external_refs: dict | None = None
 
 

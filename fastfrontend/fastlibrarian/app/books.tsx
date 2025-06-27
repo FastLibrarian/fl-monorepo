@@ -42,7 +42,7 @@ export default function BooksScreen() {
         data={books}
         keyExtractor={item => item.id.toString()}
         renderItem={({ item }) => (
-          <Text style={styles.item}>{item.title} (Author {item.author_id})</Text>
+          <Text style={styles.item}>{item.title} (Author {item.author_name})</Text>
         )}
       />
       <Text style={styles.subtitle}>Add Book</Text>

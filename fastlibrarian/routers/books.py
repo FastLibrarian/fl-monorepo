@@ -32,7 +32,7 @@ async def search_hardcover_book(title: str):
     payload = {"query": query, "variables": variables}
     async with httpx.AsyncClient(headers=hardcover_headers) as client:
         resp = await client.post(url, json=payload)
-        print(f"Hardcover API response: {resp.text}")
+
         if resp.status_code != 200:
             return None
 

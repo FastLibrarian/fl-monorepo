@@ -7,7 +7,8 @@ from fastlibrarian.config import Config
 class HardcoverAPI:
     """A class to interact with the Hardcover API for book-related operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the HardcoverAPI with the base URL and headers."""
         url = "https://api.hardcover.app/v1/graphql"
         self.headers = {
             "authorization": f"Bearer {Config.hc_api_key}",
