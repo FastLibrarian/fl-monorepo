@@ -11,6 +11,8 @@ import {
   Easing,
 } from "react-native";
 
+import { useRouter } from "expo-router";
+
 const API_URL = "http://localhost:8000/authors";
 const FIND_AUTHORS_URL = API_URL + "/find_authors";
 
@@ -21,12 +23,11 @@ export default function AuthorsScreen() {
   const [name, setName] = useState("");
   const [foundAuthors, setFoundAuthors] = useState([]);
   const [searching, setSearching] = useState(false);
-
   // Animation refs
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const overlayTranslateY = useRef(new Animated.Value(40)).current;
   const expandedInputRef = useRef<TextInput>(null);
-
+  const router = useRouter();
   useEffect(() => {
     fetchAuthors();
   }, []);
@@ -146,8 +147,27 @@ export default function AuthorsScreen() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.primaryName}>{item.name}</Text>
+            <Pressable
+              onPress={() =>
+                router.navigate({
+                  pathname: "author",
+                  params: { id: item.id },
+                })
+              }
+            >
+              <Text style={styles.primaryName}>{item.name}</Text>
+            </Pressable>
             <Text style={styles.primaryText}>{item.bio}</Text>
+            <Text style={styles.primaryText}>
+              {item.books.length} book(s) in DB:
+              {item.books
+                .map((book) => book.title)
+                .slice(0, 4)
+                .join(", ")}
+              {item.books.length > 4
+                ? `, (${item.books.length - 4} more...)`
+                : ""}
+            </Text>
             <Pressable
               onPress={() => {
                 const updatedAuthor = {

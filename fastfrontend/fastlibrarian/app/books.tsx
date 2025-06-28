@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, Button, FlatList } from "react-native";
 import { sharedStyles as styles } from "../app/sharedstyles";
+import BookCard from "../app/BookCard";
 
 const API_URL = "http://localhost:8000/books";
 
+interface Book {
+  id: string;
+  title: string;
+  description?: string | null;
+  authors?: { id: string; name: string }[];
+  series?: { id: string; name: string }[] | { id: string; name: string } | null;
+  status?: string | null;
+}
+
 export default function BooksScreen() {
-  const [books, setBooks] = useState([]);
+  const [books, setBooks] = useState<Book[]>([]);
   const [title, setTitle] = useState("");
   const [author_id, setAuthorId] = useState("");
   const [description, setDescription] = useState("");
@@ -51,36 +61,15 @@ export default function BooksScreen() {
       <Text style={styles.title}>Books</Text>
       <FlatList
         data={books}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.primaryName}>{item.title}</Text>
-            {/* Display all author names, comma separated */}
-            <Text style={styles.secondaryName}>
-              {item.authors && item.authors.length > 0
-                ? item.authors.map((a) => a.name).join(", ")
-                : "(No authors)"}
-            </Text>
-            {item.description ? (
-              <Text style={styles.primaryText}>{item.description}</Text>
-            ) : (
-              <Text style={styles.tertiaryText}>(No description)</Text>
-            )}
-            {/* Display all series names, comma separated */}
-            {item.series && item.series.length > 0 ? (
-              <Text style={styles.secondaryName}>
-                Series: {item.series.map((s) => s.name).join(", ")}
-              </Text>
-            ) : null}
-          </View>
-        )}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <BookCard book={item} />}
       />
       <Text style={styles.subtitle}>Add Book</Text>
       <TextInput
         placeholder="Title"
         value={title}
         onChangeText={setTitle}
-        style={styles.input}
+        style={styles.textInput}
       />
 
       <View
