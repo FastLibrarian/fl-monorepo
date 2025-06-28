@@ -84,6 +84,7 @@ async def update_author_books(author_id: UUID, db: AsyncSession):
             editions=work.get("editions"),
             external_refs={
                 "hardcover_id": work.get("id"),
+                "hardcover_slug": work.get("slug"),
             },
         )
         book.authors.append(author)

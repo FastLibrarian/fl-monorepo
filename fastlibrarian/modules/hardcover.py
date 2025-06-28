@@ -63,6 +63,7 @@ class HardcoverAPI:
                         id
                         title
                         description
+                        slug
                         editions {{
                             asin
                             isbn_10
@@ -93,7 +94,7 @@ class HardcoverAPI:
             book = result.get("book")
             if not book:
                 continue
-
+            print(book.get("slug"))
             editions = book.get("editions", [])
 
             book_series = [
@@ -111,6 +112,7 @@ class HardcoverAPI:
                     "description": book.get("description"),
                     "editions": editions,
                     "book_series": book_series,
+                    "slug": book.get("slug"),
                 },
             )
         return books
