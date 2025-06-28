@@ -1,13 +1,21 @@
 import { useRef, useEffect, useState } from "react";
 import { sharedStyles as styles } from "../app/sharedstyles";
-import { View, Text, TextInput, Button, FlatList, Pressable, Animated, Easing } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  FlatList,
+  Pressable,
+  Animated,
+  Easing,
+} from "react-native";
 
 const API_URL = "http://localhost:8000/authors";
 const FIND_AUTHORS_URL = API_URL + "/find_authors";
 
-
-
 export default function AuthorsScreen() {
+  const [loading, setLoading] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [authors, setAuthors] = useState([]);
   const [name, setName] = useState("");
@@ -61,23 +69,52 @@ export default function AuthorsScreen() {
   }, [searchFocused, overlayOpacity, overlayTranslateY]);
 
   const fetchAuthors = async () => {
-    const res = await fetch(API_URL);
-    setAuthors(await res.json());
+    setLoading(true);
+
+    try {
+      const res = await fetch(API_URL);
+      setAuthors(await res.json());
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const findAuthors = async () => {
     setSearching(true);
     try {
-      const res = await fetch(FIND_AUTHORS_URL + "?" + new URLSearchParams({ name: name }), {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await fetch(
+        FIND_AUTHORS_URL + "?" + new URLSearchParams({ name: name }),
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
       const data = await res.json();
       setFoundAuthors(data);
     } catch (error) {
       console.error(error);
     } finally {
       setSearching(false);
+    }
+  };
+
+  const updateAuthor = async (author) => {
+    try {
+      const res = await fetch(
+        API_URL + "/update_single_author_books/" + author.id,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(author),
+        }
+      );
+      if (res.ok) {
+        fetchAuthors();
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -96,21 +133,35 @@ export default function AuthorsScreen() {
     }
   };
 
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Authors</Text>
+      {loading ? (
+        <Text style={styles.title}>Loading authors...</Text>
+      ) : (
+        <Text style={styles.subtitle}></Text>
+      )}
       <FlatList
         data={authors}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.authorName}>{item.name}</Text>
-            <Text style={styles.authorBio}>{item.bio}</Text>
+            <Text style={styles.primaryName}>{item.name}</Text>
+            <Text style={styles.primaryText}>{item.bio}</Text>
+            <Pressable
+              onPress={() => {
+                const updatedAuthor = {
+                  ...item,
+                  name: item.name + " (edited)",
+                };
+                updateAuthor(updatedAuthor);
+              }}
+            >
+              <Text style={styles.addButton}>Recheck Books</Text>
+            </Pressable>
           </View>
         )}
       />
-
       {/* Animated Overlay for Find Authors */}
       <Animated.View
         pointerEvents={searchFocused ? "auto" : "none"}
@@ -120,13 +171,25 @@ export default function AuthorsScreen() {
             opacity: overlayOpacity,
             transform: [{ translateY: overlayTranslateY }],
             // Hide overlay visually when not focused
-            display: searchFocused || overlayOpacity.__getValue() > 0 ? "flex" : "none",
+            display:
+              searchFocused || overlayOpacity.__getValue() > 0
+                ? "flex"
+                : "none",
           },
         ]}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <Text style={styles.subtitle}>Find Authors</Text>
-          <Pressable onPress={() => setSearchFocused(false)} style={{ padding: 8 }}>
+          <Pressable
+            onPress={() => setSearchFocused(false)}
+            style={{ padding: 8 }}
+          >
             <Text style={{ fontSize: 22 }}>▼</Text>
           </Pressable>
         </View>
@@ -138,16 +201,28 @@ export default function AuthorsScreen() {
           style={styles.expandedSearchInput}
           onSubmitEditing={findAuthors}
         />
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Button title={searching ? "Searching..." : "Find"} onPress={findAuthors} disabled={searching} />
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Button
+            title={searching ? "Searching..." : "Find"}
+            onPress={findAuthors}
+            disabled={searching}
+          />
         </View>
         <FlatList
           data={foundAuthors}
-          keyExtractor={(item, idx) => (item.id ? item.id.toString() : "ext_" + idx)}
+          keyExtractor={(item, idx) =>
+            item.id ? item.id.toString() : "ext_" + idx
+          }
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <Text style={styles.authorName}>{item.name}</Text>
-              <Text style={styles.authorBio}>{item.bio}</Text>
+              <Text style={styles.primaryName}>{item.name}</Text>
+              <Text style={styles.primaryText}>{item.bio}</Text>
               {item.in_db ? (
                 <Text style={styles.inDbLabel}>(in DB)</Text>
               ) : (
@@ -157,10 +232,13 @@ export default function AuthorsScreen() {
               )}
             </View>
           )}
-          ListEmptyComponent={foundAuthors.length === 0 && name ? <Text style={styles.item}>No authors found.</Text> : null}
+          ListEmptyComponent={
+            foundAuthors.length === 0 && name ? (
+              <Text style={styles.item}>No authors found.</Text>
+            ) : null
+          }
         />
       </Animated.View>
-
       {/* Show the search bar only if overlay is not active */}
       {!searchFocused && (
         <>
@@ -169,20 +247,32 @@ export default function AuthorsScreen() {
             placeholder="Name"
             value={name}
             onChangeText={setName}
-            style={styles.input}
+            style={styles.textInput}
             onFocus={() => setSearchFocused(true)}
             onSubmitEditing={findAuthors}
           />
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Button title={searching ? "Searching..." : "Find"} onPress={findAuthors} disabled={searching} />
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Button
+              title={searching ? "Searching..." : "Find"}
+              onPress={findAuthors}
+              disabled={searching}
+            />
           </View>
           <FlatList
             data={foundAuthors}
-            keyExtractor={(item, idx) => (item.id ? item.id.toString() : "ext_" + idx)}
+            keyExtractor={(item, idx) =>
+              item.id ? item.id.toString() : "ext_" + idx
+            }
             renderItem={({ item }) => (
               <View style={styles.card}>
-                <Text style={styles.authorName}>{item.name}</Text>
-                <Text style={styles.authorBio}>{item.bio}</Text>
+                <Text style={styles.primaryName}>{item.name}</Text>
+                <Text style={styles.primaryText}>{item.bio}</Text>
                 {item.in_db ? (
                   <Text style={styles.inDbLabel}>(in DB)</Text>
                 ) : (
@@ -192,7 +282,11 @@ export default function AuthorsScreen() {
                 )}
               </View>
             )}
-            ListEmptyComponent={foundAuthors.length === 0 && name ? <Text style={styles.item}>No authors found.</Text> : null}
+            ListEmptyComponent={
+              foundAuthors.length === 0 && name ? (
+                <Text style={styles.item}>No authors found.</Text>
+              ) : null
+            }
           />
         </>
       )}

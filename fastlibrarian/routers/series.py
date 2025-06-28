@@ -4,10 +4,11 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from fastlibrarian.db import get_db
 from fastlibrarian.models import series as models
-from fastlibrarian.models.schemas import SeriesCreate, SeriesRead
+from fastlibrarian.models.schemas import BookShort, SeriesCreate, SeriesRead
 
 from .shared import hardcover_headers  # Import the headers for Hardcover API
 
@@ -79,21 +80,40 @@ async def create_series(
 @router.get("/", response_model=list[SeriesRead])
 async def list_series(db: AsyncSession = Depends(get_db)) -> list[SeriesRead]:
     """List all series."""
-    statement = select(models.Series)
+    statement = select(models.Series).options(selectinload(models.Series.books))
     result = await db.execute(statement)
     series_list = result.scalars().all()
-    return [SeriesRead.model_validate(s) for s in series_list]
+    return [
+        SeriesRead(
+            id=str(s.id),
+            name=s.name,
+            description=s.description,
+            external_refs=dict(s.external_refs) if s.external_refs else None,
+            books=[BookShort(id=str(b.id), title=b.title) for b in s.books],
+        )
+        for s in series_list
+    ]
 
 
 @router.get("/{series_id}", response_model=SeriesRead)
 async def get_series(series_id: int, db: AsyncSession = Depends(get_db)) -> SeriesRead:
     """Get a series by ID."""
-    statement = select(models.Series).where(models.Series.id == series_id)
+    statement = (
+        select(models.Series)
+        .where(models.Series.id == series_id)
+        .options(selectinload(models.Series.books))
+    )
     result = await db.execute(statement)
     series = result.scalars().first()
     if not series:
         raise HTTPException(status_code=404, detail="Series not found")
-    return SeriesRead.model_validate(series)
+    return SeriesRead(
+        id=str(series.id),
+        name=series.name,
+        description=series.description,
+        external_refs=dict(series.external_refs) if series.external_refs else None,
+        books=[BookShort(id=str(b.id), title=b.title) for b in series.books],
+    )
 
 
 @router.put("/{series_id}", response_model=SeriesRead)

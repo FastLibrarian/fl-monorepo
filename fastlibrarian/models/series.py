@@ -1,3 +1,6 @@
+"""Series model for FastLibrarian API."""
+
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from sqlalchemy import UUID, String, Text
@@ -5,6 +8,10 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from fastlibrarian.db import Base
+from fastlibrarian.models.shared import series_books
+
+if TYPE_CHECKING:
+    from fastlibrarian.models.shared import Tags
 
 
 class Series(Base):
@@ -20,9 +27,18 @@ class Series(Base):
         nullable=True,
         default=dict,
     )
+
+    tags: Mapped[list["Tags"]] = relationship(
+        "Tags",
+        secondary="series_tags",
+        back_populates="series",
+        passive_deletes=True,
+        lazy="selectin",
+    )
     books = relationship(
         "Book",
+        secondary=series_books,
         back_populates="series",
-        cascade="all, delete-orphan",
         passive_deletes=True,
+        lazy="selectin",
     )

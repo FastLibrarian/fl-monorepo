@@ -2,10 +2,12 @@
 
 import os
 from collections.abc import AsyncGenerator
+from datetime import datetime
 
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, func
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 # Database URL from environment variable with fallback
 DATABASE_URL = os.getenv(
@@ -29,7 +31,22 @@ AsyncSessionLocal = async_sessionmaker(
 
 # Create base class for models
 metadata = MetaData()
-Base = declarative_base(metadata=metadata)
+
+
+class BaseMixin:
+    """Base mixin with common fields for all models."""
+
+    @declared_attr.directive
+    def __tablename__(cls) -> str:
+        return cls.__name__.lower()
+
+    add_date: Mapped[datetime] = mapped_column(
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+Base = declarative_base(metadata=metadata, cls=BaseMixin)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

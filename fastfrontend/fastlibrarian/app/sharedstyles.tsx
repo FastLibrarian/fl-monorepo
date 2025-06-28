@@ -1,53 +1,78 @@
-import { StyleSheet} from "react-native";
-
+import { StyleSheet } from "react-native";
 
 export const sharedStyles = StyleSheet.create({
   container: { flex: 1, padding: 24 },
-  // Styles for the main container
-  title: { fontSize: 28, marginBottom: 16, alignSelf: "center" },
-  // Styles for the page title
-  subtitle: { fontSize: 20, marginTop: 24 },
-  // Styles for the subtitle
-  input: { borderWidth: 1, borderColor: "#ccc", marginVertical: 8, padding: 8, borderRadius: 4 },
-  // Styles for text inputs
-  item: { fontSize: 16, marginVertical: 4 },
-  // Styles for list items
-  addButton: {
-  color: "#fff",
-  backgroundColor: "#007AFF",
-  paddingHorizontal: 10,
-  paddingVertical: 4,
-  borderRadius: 4,
-  overflow: "hidden",
-  marginLeft: 8,
 
-},card: {
-  backgroundColor: "#fff",
-  borderRadius: 8,
-  padding: 16,
-  marginVertical: 8,
-  marginHorizontal: "10%",
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 3,
-  flexDirection: "row", alignItems: "center", justifyContent: "space-between"
-},
-authorName: {
-  fontSize: 18,
-  fontWeight: "bold",
-  marginBottom: 4,
-},
-authorBio: {
-  fontSize: 14,
-  color: "#555",
-  marginBottom: 8,
-},
-inDbLabel: {
-  color: "green",
-  fontWeight: "bold",
-},searchInput: {
+  title: {
+    fontSize: 28,
+    marginBottom: 16,
+    alignSelf: "center",
+    fontWeight: "bold",
+  },
+
+  subtitle: { fontSize: 20, marginTop: 24 },
+
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginVertical: 8,
+    padding: 8,
+    borderRadius: 4,
+  },
+
+  listItem: { fontSize: 16, marginVertical: 4 },
+
+  addButton: {
+    color: "#fff",
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginLeft: 8,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 8,
+    marginHorizontal: "10%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  primaryName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  primaryText: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 8,
+  },
+  secondaryName: {
+    fontSize: 16,
+    fontStyle: "italic",
+    fontWeight: "normal",
+    marginBottom: 4,
+  },
+  tertiaryText: {
+    fontSize: 14,
+    color: "#777",
+    marginBottom: 4,
+    fontStyle: "italic",
+  },
+  inDbLabel: {
+    color: "green",
+    fontWeight: "bold",
+  },
+  searchInput: {
     margin: 16,
     padding: 8,
     borderWidth: 1,
@@ -63,7 +88,6 @@ inDbLabel: {
     backgroundColor: "#fff",
     zIndex: 10,
     padding: 16,
-    // Add shadow or elevation if desired
   },
   expandedSearchInput: {
     padding: 12,
@@ -73,5 +97,4 @@ inDbLabel: {
     marginBottom: 16,
     fontSize: 18,
   },
-}
-);
+});

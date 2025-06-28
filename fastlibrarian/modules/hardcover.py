@@ -56,8 +56,9 @@ class HardcoverAPI:
 
     async def get_works(self, id: str):
         """Extract and return works for an author from Hardcover, structured for db."""
+        # _neq: "4" filters deduped
         query = f"""{{
-        contributions(where: {{author_id: {{_eq: {id}}}}}) {{
+        contributions(where: {{author_id: {{_eq: {id}}}, book: {{book_status_id: {{_neq: "4"}}}}}}) {{ 
                     book {{
                         id
                         title

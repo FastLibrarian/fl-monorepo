@@ -1,15 +1,18 @@
+"""Routers for Book endpoints, supporting many-to-many author and series relationships."""
+
 from uuid import uuid4
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from fastlibrarian.db import get_db
 from fastlibrarian.models import authors as author_models
 from fastlibrarian.models import books as models
 from fastlibrarian.models import series as series_models
-from fastlibrarian.models.schemas import BookCreate, BookRead
+from fastlibrarian.models.schemas import AuthorShort, BookRead, SeriesShort
 
 from .shared import hardcover_headers
 
@@ -126,8 +129,10 @@ async def get_or_create_series(db: AsyncSession, series_data):
 
 
 @router.post("/", response_model=BookRead)
-async def create_book(data: dict, db: AsyncSession = Depends(get_db)) -> BookRead:
+async def create_book(request: Request) -> BookRead:
     """Create a new book, searching Hardcover API first."""
+    db: AsyncSession = await request.app.dependency_overrides[get_db]()
+    data = await request.json()
     title = data.get("title")
     if not title:
         raise HTTPException(status_code=400, detail="Title is required")
@@ -154,10 +159,11 @@ async def create_book(data: dict, db: AsyncSession = Depends(get_db)) -> BookRea
     db_book = models.Book(
         id=uuid4(),
         title=title,
-        author_id=db_author.id,
         description=description,
-        series_id=db_series.id if db_series else None,
     )
+    db_book.authors.append(db_author)
+    if db_series:
+        db_book.series.append(db_series)
     db.add(db_book)
     await db.commit()
     await db.refresh(db_book)
@@ -167,59 +173,113 @@ async def create_book(data: dict, db: AsyncSession = Depends(get_db)) -> BookRea
 @router.get("/", response_model=list[BookRead])
 async def list_books(db: AsyncSession = Depends(get_db)) -> list[BookRead]:
     """List all books."""
-    statement = select(models.Book)
+    statement = select(models.Book).options(
+        selectinload(models.Book.authors),
+        selectinload(models.Book.series),
+    )
     result = await db.execute(statement)
     books = result.scalars().all()
-    return [BookRead.model_validate(b) for b in books]
+    return [
+        BookRead(
+            id=str(b.id),
+            title=b.title,
+            description=b.description,
+            editions=b.editions,
+            external_refs=dict(b.external_refs) if b.external_refs else None,
+            status=b.status,
+            authors=[AuthorShort(id=str(a.id), name=a.name) for a in b.authors],
+            series=[SeriesShort(id=str(s.id), name=s.name) for s in b.series],
+        )
+        for b in books
+    ]
 
 
 @router.get("/{book_id}", response_model=BookRead)
-async def get_book(book_id: int, db: AsyncSession = Depends(get_db)) -> BookRead:
+async def get_book(book_id: str, db: AsyncSession = Depends(get_db)) -> BookRead:
     """Get a book by ID."""
-    statement = select(models.Book).where(models.Book.id == book_id)
+    statement = (
+        select(models.Book)
+        .where(models.Book.id == book_id)
+        .options(
+            selectinload(models.Book.authors),
+            selectinload(models.Book.series),
+        )
+    )
     result = await db.execute(statement)
-    book = result.scalars().first()
-    if not book:
+    b = result.scalars().first()
+    if not b:
         raise HTTPException(status_code=404, detail="Book not found")
-    return BookRead.model_validate(book)
+    return BookRead(
+        id=str(b.id),
+        title=b.title,
+        description=b.description,
+        editions=b.editions,
+        external_refs=dict(b.external_refs) if b.external_refs else None,
+        status=b.status,
+        authors=[AuthorShort(id=str(a.id), name=a.name) for a in b.authors],
+        series=[SeriesShort(id=str(s.id), name=s.name) for s in b.series],
+    )
 
 
 @router.put("/{book_id}", response_model=BookRead)
-async def update_book(
-    book_id: int,
-    book: BookCreate,
-    db: AsyncSession = Depends(get_db),
-) -> BookRead:
+async def update_book(request: Request, book_id: str) -> BookRead:
     """Update a book by ID."""
-    statement = select(models.Book).where(models.Book.id == book_id)
+    db: AsyncSession = await request.app.dependency_overrides[get_db]()
+    book = await request.json()
+    from sqlalchemy.orm import selectinload
+
+    statement = (
+        select(models.Book)
+        .where(models.Book.id == book_id)
+        .options(
+            selectinload(models.Book.authors),
+            selectinload(models.Book.series),
+        )
+    )
     result = await db.execute(statement)
     db_book = result.scalars().first()
     if not db_book:
         raise HTTPException(status_code=404, detail="Book not found")
-    for key, value in book.model_dump().items():
-        setattr(db_book, key, value)
+    db_book.title = book.get("title", db_book.title)
+    db_book.description = book.get("description", db_book.description)
+    db_book.status = book.get("status", db_book.status)
+    if "external_refs" in book:
+        db_book.external_refs = book["external_refs"]
+    if "editions" in book:
+        db_book.editions = book["editions"]
+    # Update authors
+    if "author_ids" in book:
+        author_objs = []
+        for aid in book["author_ids"]:
+            author_stmt = select(author_models.Author).where(
+                author_models.Author.id == aid,
+            )
+            author_result = await db.execute(author_stmt)
+            author = author_result.scalars().first()
+            if author:
+                author_objs.append(author)
+        db_book.authors = author_objs
+    # Update series
+    if "series_ids" in book:
+        series_objs = []
+        for sid in book["series_ids"]:
+            series_stmt = select(series_models.Series).where(
+                series_models.Series.id == sid,
+            )
+            series_result = await db.execute(series_stmt)
+            series = series_result.scalars().first()
+            if series:
+                series_objs.append(series)
+        db_book.series = series_objs
     await db.commit()
     await db.refresh(db_book)
     return BookRead.model_validate(db_book)
 
 
 @router.delete("/{book_id}", response_model=BookRead)
-async def delete_book(book_id: int, db: AsyncSession = Depends(get_db)) -> BookRead:
+async def delete_book(request: Request, book_id: str) -> BookRead:
     """Delete a book by ID."""
-    statement = select(models.Book).where(models.Book.id == book_id)
-    result = await db.execute(statement)
-    db_book = result.scalars().first()
-    if not db_book:
-        raise HTTPException(status_code=404, detail="Book not found")
-    await db.delete(db_book)
-    await db.commit()
-    return BookRead.model_validate(db_book)
-    return BookRead.model_validate(db_book)
-
-
-@router.delete("/{book_id}", response_model=BookRead)
-async def delete_book(book_id: int, db: AsyncSession = Depends(get_db)) -> BookRead:
-    """Delete a book by ID."""
+    db: AsyncSession = await request.app.dependency_overrides[get_db]()
     statement = select(models.Book).where(models.Book.id == book_id)
     result = await db.execute(statement)
     db_book = result.scalars().first()
