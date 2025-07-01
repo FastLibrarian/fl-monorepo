@@ -7,6 +7,23 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, computed_field
 
 
+class FastLibrarianConfig(BaseModel):
+    """Configuration schema for FastLibrarian API (legacy compatibility)."""
+
+    app_name: str = "FastLibrarian"
+    version: str = "1.0.0"
+    description: str = "A fast and efficient librarian API."
+
+    @classmethod
+    def from_app_config(cls, app_config) -> "FastLibrarianConfig":
+        """Create from AppConfig for backward compatibility."""
+        return cls(
+            app_name=app_config.app_name,
+            version=app_config.api.version,
+            description=app_config.api.description,
+        )
+
+
 class AuthorShort(BaseModel):
     id: UUID
     name: str
@@ -91,8 +108,8 @@ class BookBase(BaseModel):
     description: str | None = None
     editions: list[dict] | None = None
     external_refs: dict | None = None
-    status: BookStatus = BookStatus.Wanted
-    a_status: BookStatus = BookStatus.Wanted
+    status: BookStatus = BookStatus.Ignored
+    a_status: BookStatus = BookStatus.Ignored
     p_status: BookStatus | None = None
 
 

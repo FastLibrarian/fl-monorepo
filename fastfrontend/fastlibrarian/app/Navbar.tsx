@@ -6,6 +6,7 @@ const routes = [
   { name: "Authors", path: "/authors" },
   { name: "Books", path: "/books" },
   { name: "Series", path: "/series" },
+  { name: "Config", path: "/config" },
 ];
 
 export default function Navbar() {
@@ -17,7 +18,6 @@ export default function Navbar() {
           key={route.path}
           title={route.name}
           onPress={() => router.push(route.path)}
-
         />
       ))}
     </View>

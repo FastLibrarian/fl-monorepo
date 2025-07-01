@@ -1,7 +1,7 @@
 import httpx
 from loguru import logger
 
-from fastlibrarian.config import Config
+from fastlibrarian.config import ExternalAPIConfig
 
 
 class HardcoverAPI:
@@ -11,7 +11,7 @@ class HardcoverAPI:
         """Initialize the HardcoverAPI with the base URL and headers."""
         url = "https://api.hardcover.app/v1/graphql"
         self.headers = {
-            "authorization": f"Bearer {Config.hc_api_key}",
+            "authorization": f"Bearer {ExternalAPIConfig().hardcover_api_key}",
         }
         self.client = httpx.AsyncClient(headers=self.headers, base_url=url)
 
