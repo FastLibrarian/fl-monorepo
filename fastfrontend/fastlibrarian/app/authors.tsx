@@ -150,7 +150,7 @@ export default function AuthorsScreen() {
             <Pressable
               onPress={() =>
                 router.navigate({
-                  pathname: "author",
+                  pathname: "/author",
                   params: { id: item.id },
                 })
               }
@@ -159,7 +159,7 @@ export default function AuthorsScreen() {
             </Pressable>
             <Text style={styles.primaryText}>{item.bio}</Text>
             <Text style={styles.primaryText}>
-              {item.books.length} book(s) in DB:
+              {item.books.length} book(s) in DB:{" "}
               {item.books
                 .map((book) => book.title)
                 .slice(0, 4)

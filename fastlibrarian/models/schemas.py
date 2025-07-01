@@ -4,17 +4,21 @@ from enum import Enum
 from functools import cached_property
 from uuid import UUID
 
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, ConfigDict, computed_field
+
+
+class AuthorShort(BaseModel):
+    id: UUID
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SeriesShort(BaseModel):
     id: UUID
     name: str
 
-
-class AuthorShort(BaseModel):
-    id: UUID
-    name: str
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BookShort(BaseModel):

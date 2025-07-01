@@ -31,13 +31,13 @@ class Book(Base):
         server_default=BookStatus.Wanted.value,
     )
     a_status: Mapped[BookStatus] = mapped_column(
-        SQLEnum(BookStatus, name="book_a_status"),
+        SQLEnum(BookStatus, name="book_status"),
         nullable=False,
         default=BookStatus.Wanted,
         server_default=BookStatus.Wanted.value,
     )
     p_status: Mapped[BookStatus] = mapped_column(
-        SQLEnum(BookStatus, name="book_p_status"),
+        SQLEnum(BookStatus, name="book_status"),
         nullable=True,
         default=BookStatus.Wanted,
         server_default=BookStatus.Wanted.value,

@@ -4,6 +4,7 @@ import { sharedStyles as styles } from "../app/sharedstyles";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   View,
+  Button,
   Text,
   FlatList,
   ActivityIndicator,
@@ -13,14 +14,24 @@ import {
 
 const API_URL = "http://localhost:8000/books";
 
+// Book status enum matching the API
+enum BookStatus {
+  Wanted = "Wanted",
+  Have = "Have",
+  Ignored = "Ignored",
+  Delete = "Delete",
+}
+
 interface Book {
   id: string;
   title: string;
   description: string | null;
   authors: { id: string; name: string }[];
-  series: { id: string; name: string } | null;
+  series: { id: string; name: string }[] | null;
   external_refs: Record<string, any> | null;
-  status: string | null;
+  status?: BookStatus | null; // E-book status
+  a_status?: BookStatus | null; // Audio book status
+  p_status?: BookStatus | null; // Physical book status
 }
 
 export default function BookScreen() {
@@ -85,41 +96,55 @@ export default function BookScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>{book.title}</Text>
-      <Text style={styles.description}>
+      <Text style={styles.primaryText}>
         {book.description || "No description available"}
       </Text>
-      <Text style={styles.subtitle}>Authors:</Text>
+      <Text style={styles.subtitle}>Author(s):</Text>
       <FlatList
         data={book.authors}
         keyExtractor={(author) => author.id}
         renderItem={({ item }) => (
           <Pressable
-            onPress={() => router.navigate("author", { id: item.id })}
-            style={styles.authorCard}
+            onPress={() =>
+              router.navigate({
+                pathname: "/author",
+                params: { id: item.id },
+              })
+            }
           >
-            <Text style={styles.authorName}>{item.name}</Text>
+            <Text style={styles.primaryName}>{item.name}</Text>
           </Pressable>
         )}
       />
-      {book.series && (
-        <Text style={styles.subtitle}>Series: {book.series.name}</Text>
-      )}
+      <Text style={styles.subtitle}>Series:</Text>
+      <FlatList
+        data={book.series}
+        keyExtractor={(series) => series.id}
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() =>
+              router.navigate({
+                pathname: "/single_series",
+                params: { id: item.id },
+              })
+            }
+          >
+            <Text style={styles.primaryName}>{item.name}</Text>
+          </Pressable>
+        )}
+      />
       {book.external_refs && (
         <View>
           <Text style={styles.subtitle}>External References:</Text>
           {Object.entries(book.external_refs).map(([key, value]) => (
-            <Text key={key} style={styles.externalRef}>
+            <Text key={key} style={styles.secon}>
               {key}: {value}
             </Text>
           ))}
         </View>
       )}
-      <Pressable
-        onPress={() => router.back()}
-        style={[styles.button, styles.goBackButton]}
-      >
-        <Text style={{ color: "white" }}>Go Back</Text>
-      </Pressable>
+
+      <Button title="Go Back" onPress={() => router.back()} />
     </ScrollView>
   );
 }

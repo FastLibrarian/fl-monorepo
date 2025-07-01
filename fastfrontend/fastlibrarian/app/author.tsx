@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { sharedStyles as styles } from "../app/sharedstyles";
 import BookCard from "../app/BookCard";
 
@@ -14,12 +14,24 @@ import {
 
 const API_URL = "http://localhost:8000/authors";
 
+// Book status enum matching the API
+enum BookStatus {
+  Wanted = "Wanted",
+  Have = "Have",
+  Ignored = "Ignored",
+  Delete = "Delete",
+}
+
 interface Book {
   id: string;
   title: string;
-  status: string | null;
+  status?: BookStatus | null; // E-book status
+  a_status?: BookStatus | null; // Audio book status
+  p_status?: BookStatus | null; // Physical book status
   description: string | null;
   external_refs: Record<string, any> | null;
+  authors?: { id: string; name: string }[];
+  series?: { id: string; name: string }[] | { id: string; name: string } | null;
 }
 
 interface Author {
@@ -38,11 +50,9 @@ export default function AuthorScreen() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAuthor();
-  }, [id]);
   const router = useRouter();
-  const fetchAuthor = async () => {
+
+  const fetchAuthor = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -67,7 +77,11 @@ export default function AuthorScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchAuthor();
+  }, [fetchAuthor]);
 
   const updateAuthorBooks = async () => {
     try {
@@ -94,6 +108,32 @@ export default function AuthorScreen() {
       );
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const updateBookStatus = async (
+    bookId: string,
+    type: "ebook" | "audio" | "physical",
+    status: BookStatus
+  ) => {
+    try {
+      const statusField =
+        type === "ebook"
+          ? "status"
+          : type === "audio"
+          ? "a_status"
+          : "p_status";
+      await fetch(`http://localhost:8000/books/${bookId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          [statusField]: status,
+        }),
+      });
+      // Refresh the author data to show updated status
+      fetchAuthor();
+    } catch (error) {
+      console.error("Failed to update book status:", error);
     }
   };
 
@@ -210,6 +250,9 @@ export default function AuthorScreen() {
               showDetailsButton
               onPressDetails={() =>
                 router.navigate({ pathname: "/book", params: { id: item.id } })
+              }
+              onStatusChange={(type, status) =>
+                updateBookStatus(item.id, type, status)
               }
               containerStyle={{ marginBottom: 12 }}
             />

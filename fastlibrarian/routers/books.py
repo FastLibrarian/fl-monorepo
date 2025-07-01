@@ -179,19 +179,9 @@ async def list_books(db: AsyncSession = Depends(get_db)) -> list[BookRead]:
     )
     result = await db.execute(statement)
     books = result.scalars().all()
-    return [
-        BookRead(
-            id=str(b.id),
-            title=b.title,
-            description=b.description,
-            editions=b.editions,
-            external_refs=dict(b.external_refs) if b.external_refs else None,
-            status=b.status,
-            authors=[AuthorShort(id=str(a.id), name=a.name) for a in b.authors],
-            series=[SeriesShort(id=str(s.id), name=s.name) for s in b.series],
-        )
-        for b in books
-    ]
+    # Sort books alphabetically by title
+    books = sorted(books, key=lambda book: book.title.lower() if book.title else "")
+    return [BookRead.model_validate(b) for b in books]
 
 
 @router.get("/{book_id}", response_model=BookRead)
@@ -206,19 +196,10 @@ async def get_book(book_id: str, db: AsyncSession = Depends(get_db)) -> BookRead
         )
     )
     result = await db.execute(statement)
-    b = result.scalars().first()
-    if not b:
+    book = result.scalars().first()
+    if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    return BookRead(
-        id=str(b.id),
-        title=b.title,
-        description=b.description,
-        editions=b.editions,
-        external_refs=dict(b.external_refs) if b.external_refs else None,
-        status=b.status,
-        authors=[AuthorShort(id=str(a.id), name=a.name) for a in b.authors],
-        series=[SeriesShort(id=str(s.id), name=s.name) for s in b.series],
-    )
+    return BookRead.model_validate(book)
 
 
 @router.put("/{book_id}", response_model=BookRead)
@@ -226,7 +207,6 @@ async def update_book(request: Request, book_id: str) -> BookRead:
     """Update a book by ID."""
     db: AsyncSession = await request.app.dependency_overrides[get_db]()
     book = await request.json()
-    from sqlalchemy.orm import selectinload
 
     statement = (
         select(models.Book)
@@ -274,6 +254,76 @@ async def update_book(request: Request, book_id: str) -> BookRead:
     await db.commit()
     await db.refresh(db_book)
     return BookRead.model_validate(db_book)
+
+
+@router.patch("/{book_id}", response_model=BookRead)
+async def patch_book_status(
+    book_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> BookRead:
+    """Update book status fields (status, a_status, p_status)."""
+    data = await request.json()
+
+    statement = (
+        select(models.Book)
+        .where(models.Book.id == book_id)
+        .options(
+            selectinload(models.Book.authors),
+            selectinload(models.Book.series),
+        )
+    )
+    result = await db.execute(statement)
+    db_book = result.scalars().first()
+    if not db_book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    # Update only the status fields that are provided
+    if "status" in data:
+        db_book.status = data["status"]
+    if "a_status" in data:
+        db_book.a_status = data["a_status"]
+    if "p_status" in data:
+        db_book.p_status = data["p_status"]
+
+    await db.commit()
+    await db.refresh(db_book, ["authors", "series"])
+
+    # Re-fetch the book with relationships to ensure proper Pydantic validation
+    statement = (
+        select(models.Book)
+        .where(models.Book.id == book_id)
+        .options(
+            selectinload(models.Book.authors),
+            selectinload(models.Book.series),
+        )
+    )
+    result = await db.execute(statement)
+    refreshed_book = result.scalars().first()
+
+    if not refreshed_book:
+        raise HTTPException(status_code=404, detail="Book not found after update")
+
+    return BookRead(
+        id=refreshed_book.id,
+        title=refreshed_book.title,
+        description=refreshed_book.description,
+        editions=(
+            refreshed_book.editions
+            if isinstance(refreshed_book.editions, list)
+            else None
+        ),
+        external_refs=(
+            refreshed_book.external_refs
+            if isinstance(refreshed_book.external_refs, dict)
+            else {}
+        ),
+        status=refreshed_book.status,
+        a_status=refreshed_book.a_status,
+        p_status=refreshed_book.p_status,
+        authors=[AuthorShort(id=a.id, name=a.name) for a in refreshed_book.authors],
+        series=[SeriesShort(id=s.id, name=s.name) for s in refreshed_book.series],
+    )
 
 
 @router.delete("/{book_id}", response_model=BookRead)

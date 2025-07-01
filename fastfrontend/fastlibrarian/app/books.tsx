@@ -5,13 +5,23 @@ import BookCard from "../app/BookCard";
 
 const API_URL = "http://localhost:8000/books";
 
+// Book status enum matching the API
+enum BookStatus {
+  Wanted = "Wanted",
+  Have = "Have",
+  Ignored = "Ignored",
+  Delete = "Delete",
+}
+
 interface Book {
   id: string;
   title: string;
   description?: string | null;
   authors?: { id: string; name: string }[];
   series?: { id: string; name: string }[] | { id: string; name: string } | null;
-  status?: string | null;
+  status?: BookStatus | null; // E-book status
+  a_status?: BookStatus | null; // Audio book status
+  p_status?: BookStatus | null; // Physical book status
 }
 
 export default function BooksScreen() {
@@ -52,6 +62,32 @@ export default function BooksScreen() {
     }
   };
 
+  const updateBookStatus = async (
+    bookId: string,
+    type: "ebook" | "audio" | "physical",
+    status: BookStatus
+  ) => {
+    try {
+      const statusField =
+        type === "ebook"
+          ? "status"
+          : type === "audio"
+          ? "a_status"
+          : "p_status";
+      await fetch(`${API_URL}/${bookId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          [statusField]: status,
+        }),
+      });
+      // Refresh the books list to show updated status
+      fetchBooks();
+    } catch (error) {
+      console.error("Failed to update book status:", error);
+    }
+  };
+
   useEffect(() => {
     fetchBooks();
   }, []);
@@ -62,7 +98,14 @@ export default function BooksScreen() {
       <FlatList
         data={books}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <BookCard book={item} />}
+        renderItem={({ item }) => (
+          <BookCard
+            book={item}
+            onStatusChange={(type, status) =>
+              updateBookStatus(item.id, type, status)
+            }
+          />
+        )}
       />
       <Text style={styles.subtitle}>Add Book</Text>
       <TextInput
