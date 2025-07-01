@@ -31,6 +31,10 @@ export default function BooksScreen() {
   const [description, setDescription] = useState("");
   const [series_id, setSeriesId] = useState("");
   const [adding, setAdding] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<{
+    bookId: string;
+    type: string;
+  } | null>(null);
 
   const fetchBooks = async () => {
     const res = await fetch(API_URL);
@@ -81,10 +85,19 @@ export default function BooksScreen() {
           [statusField]: status,
         }),
       });
-      // Refresh the books list to show updated status
+      // Close dropdown and refresh
+      setActiveDropdown(null);
       fetchBooks();
     } catch (error) {
       console.error("Failed to update book status:", error);
+    }
+  };
+
+  const handleDropdownToggle = (bookId: string, type: string) => {
+    if (activeDropdown?.bookId === bookId && activeDropdown?.type === type) {
+      setActiveDropdown(null);
+    } else {
+      setActiveDropdown({ bookId, type });
     }
   };
 
@@ -104,6 +117,8 @@ export default function BooksScreen() {
             onStatusChange={(type, status) =>
               updateBookStatus(item.id, type, status)
             }
+            activeDropdown={activeDropdown}
+            onDropdownToggle={handleDropdownToggle}
           />
         )}
       />

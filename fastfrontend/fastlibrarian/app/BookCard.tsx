@@ -40,6 +40,8 @@ interface BookCardProps {
     type: "ebook" | "audio" | "physical",
     status: BookStatus
   ) => void;
+  activeDropdown?: { bookId: string; type: string } | null;
+  onDropdownToggle?: (bookId: string, type: string) => void;
 }
 
 // Status Dropdown Component
@@ -47,94 +49,82 @@ const StatusDropdown: React.FC<{
   label: string;
   value: BookStatus | null;
   onValueChange: (status: BookStatus) => void;
-}> = ({ label, value, onValueChange }) => {
-  const [modalVisible, setModalVisible] = useState(false);
-
+  isOpen: boolean;
+  onToggle: () => void;
+}> = ({ label, value, onValueChange, isOpen, onToggle }) => {
   const statusOptions = Object.values(BookStatus);
 
   return (
     <View style={{ marginVertical: 4 }}>
       <Text style={[styles.tertiaryText, { fontSize: 12 }]}>{label}:</Text>
       <Pressable
-        onPress={() => setModalVisible(true)}
+        onPress={onToggle}
         style={{
           borderWidth: 1,
           borderColor: "#ccc",
           borderRadius: 4,
-          paddingHorizontal: 8,
+          paddingHorizontal: 25,
           paddingVertical: 4,
           backgroundColor: "#f9f9f9",
           minHeight: 32,
           justifyContent: "center",
+          flexDirection: "row",
+          alignItems: "center",
         }}
       >
-        <Text style={[styles.primaryText, { fontSize: 14 }]}>
+        <Text style={[styles.primaryText, { fontSize: 14, flex: 1 }]}>
           {value || "Select status"}
+        </Text>
+        <Text style={[styles.primaryText, { fontSize: 12 }]}>
+          {isOpen ? " ▲" : " ▼"}
         </Text>
       </Pressable>
 
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <TouchableOpacity
+      {isOpen && (
+        <View
           style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            justifyContent: "center",
-            alignItems: "center",
+            marginTop: 2,
+            backgroundColor: "white",
+            borderWidth: 1,
+            borderColor: "#ccc",
+            borderRadius: 4,
+            elevation: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 6,
           }}
-          onPress={() => setModalVisible(false)}
         >
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 8,
-              padding: 16,
-              minWidth: 200,
-              maxWidth: 300,
-            }}
-          >
-            <Text
-              style={[
-                styles.primaryName,
-                { marginBottom: 12, textAlign: "center" },
-              ]}
+          {statusOptions.map((status) => (
+            <Pressable
+              key={status}
+              onPress={() => {
+                onValueChange(status);
+              }}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                borderBottomWidth:
+                  status === statusOptions[statusOptions.length - 1] ? 0 : 1,
+                borderBottomColor: "#eee",
+              }}
             >
-              Select {label}
-            </Text>
-            {statusOptions.map((status) => (
-              <Pressable
-                key={status}
-                onPress={() => {
-                  onValueChange(status);
-                  setModalVisible(false);
-                }}
-                style={{
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  borderBottomWidth: 1,
-                  borderBottomColor: "#eee",
-                }}
+              <Text
+                style={[
+                  styles.primaryText,
+                  { fontSize: 14 },
+                  value === status && {
+                    fontWeight: "bold",
+                    color: "#007AFF",
+                  },
+                ]}
               >
-                <Text
-                  style={[
-                    styles.primaryText,
-                    value === status && {
-                      fontWeight: "bold",
-                      color: "#007AFF",
-                    },
-                  ]}
-                >
-                  {status}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+                {status}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -145,8 +135,11 @@ const BookCard: React.FC<BookCardProps> = ({
   showDetailsButton = true,
   containerStyle,
   onStatusChange,
+  activeDropdown,
+  onDropdownToggle,
 }) => {
   const router = useRouter();
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // Debug: Log status values
   console.log("Book statuses for", book.title, ":", {
@@ -175,19 +168,54 @@ const BookCard: React.FC<BookCardProps> = ({
     }
   };
 
+  const handleDropdownToggle = (type: string) => {
+    if (onDropdownToggle) {
+      onDropdownToggle(book.id, type);
+    }
+  };
+
   return (
     <View style={[styles.card, containerStyle]}>
-      <Text style={styles.primaryName}>{book.title}</Text>
+      <Pressable onPress={handlePress}>
+        <Text style={[styles.primaryName, { textDecorationLine: "underline" }]}>
+          {book.title}
+        </Text>
+      </Pressable>
       {book.authors && book.authors.length > 0 && (
         <Text style={styles.secondaryName}>
           {book.authors.map((a) => a.name).join(", ")}
         </Text>
       )}
+
+      {/* Expandable Description */}
       {book.description ? (
-        <Text style={styles.primaryText}>{book.description}</Text>
+        <View>
+          <Text
+            style={styles.primaryText}
+            numberOfLines={isDescriptionExpanded ? undefined : 4}
+          >
+            {book.description}
+          </Text>
+          {book.description.length > 200 && ( // Rough estimate for 4 lines
+            <Pressable
+              onPress={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              style={{ marginTop: 4 }}
+            >
+              <Text
+                style={[
+                  styles.tertiaryText,
+                  { fontStyle: "italic", fontSize: 12 },
+                ]}
+              >
+                {isDescriptionExpanded ? "Show less" : "Show more"}
+              </Text>
+            </Pressable>
+          )}
+        </View>
       ) : (
         <Text style={styles.tertiaryText}>(No description)</Text>
       )}
+
       {seriesList.length > 0 && (
         <Text style={styles.secondaryName}>
           Series: {seriesList.map((s) => s.name).join(", ")}
@@ -195,32 +223,47 @@ const BookCard: React.FC<BookCardProps> = ({
       )}
 
       {/* Status Dropdowns */}
-      <View style={{ marginTop: 12 }}>
+      <View
+        style={{
+          marginTop: 12,
+          marginLeft: 8,
+          overflow: "visible",
+          flexDirection: "row",
+          flex: 3,
+          justifyContent: "center",
+        }}
+      >
         <StatusDropdown
           label="E-book Status"
           value={book.status || null}
           onValueChange={(status) => handleStatusChange("ebook", status)}
+          isOpen={
+            activeDropdown?.bookId === book.id &&
+            activeDropdown?.type === "ebook"
+          }
+          onToggle={() => handleDropdownToggle("ebook")}
         />
         <StatusDropdown
           label="Audiobook Status"
           value={book.a_status || null}
           onValueChange={(status) => handleStatusChange("audio", status)}
+          isOpen={
+            activeDropdown?.bookId === book.id &&
+            activeDropdown?.type === "audio"
+          }
+          onToggle={() => handleDropdownToggle("audio")}
         />
         <StatusDropdown
           label="Physical Book Status"
           value={book.p_status || null}
           onValueChange={(status) => handleStatusChange("physical", status)}
+          isOpen={
+            activeDropdown?.bookId === book.id &&
+            activeDropdown?.type === "physical"
+          }
+          onToggle={() => handleDropdownToggle("physical")}
         />
       </View>
-
-      {showDetailsButton && (
-        <Pressable
-          onPress={handlePress}
-          style={{ alignSelf: "flex-end", marginTop: 8 }}
-        >
-          <Text style={styles.addButton}>View Details</Text>
-        </Pressable>
-      )}
     </View>
   );
 };

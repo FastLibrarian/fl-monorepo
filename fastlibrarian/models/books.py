@@ -27,20 +27,17 @@ class Book(Base):
     status: Mapped[BookStatus] = mapped_column(
         SQLEnum(BookStatus, name="book_status"),
         nullable=False,
-        default=BookStatus.Wanted,
-        server_default=BookStatus.Wanted.value,
+        default=BookStatus.Ignored,
     )
     a_status: Mapped[BookStatus] = mapped_column(
         SQLEnum(BookStatus, name="book_status"),
         nullable=False,
-        default=BookStatus.Wanted,
-        server_default=BookStatus.Wanted.value,
+        default=BookStatus.Ignored,
     )
     p_status: Mapped[BookStatus] = mapped_column(
         SQLEnum(BookStatus, name="book_status"),
         nullable=True,
-        default=BookStatus.Wanted,
-        server_default=BookStatus.Wanted.value,
+        default=BookStatus.Ignored,
     )
 
     external_refs: Mapped[JSONB] = mapped_column(
