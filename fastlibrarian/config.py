@@ -1,10 +1,11 @@
-from functools import cached_property
+import enum
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import rtoml
 from loguru import logger
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +23,61 @@ class DatabaseConfig(BaseModel):
     max_overflow: int = Field(default=20, ge=0, le=50)
 
     model_config = ConfigDict(extra="forbid")
+
+
+class PreferencesConfig(BaseModel):
+    """User preferences configuration section."""
+
+    audio_file_types: list[str] = Field(
+        default_factory=lambda: ["mp3", "m4b", "flac"],
+        description="List of allowed audio file types for uploads",
+    )
+    ebook_file_types: list[str] = Field(
+        default_factory=lambda: ["epub", "azw3", "mobi"],
+        description="List of allowed ebook file types for uploads",
+    )
+    language_preferences: list[str] = Field(
+        default_factory=lambda: ["en"],
+        description="List of preferred languages for content",
+    )
+
+
+class DownloadClientType(str, Enum):
+    qbittorrent = "qbittorrent"
+    aria2 = "aria2"
+    transmission = "transmission"
+    deluge = "deluge"
+
+
+class DownloadClientConfig(BaseModel):
+    """Config for download clients."""
+
+    tags: list[str] = Field(
+        default_factory=lambda: ["fastlibrarian"],
+        description="List of tags to apply to downloaded content",
+    )
+    client_type: DownloadClientType = Field(
+        default=DownloadClientType.qbittorrent,
+        description="Type of download client to use (e.g., aria2, transmission)",
+    )
+    client_ip: str = Field(
+        default="127.0.0.1",
+        description="IP address of the download client",
+    )
+    client_username: str = Field(
+        default="admin",
+        description="Username for the download client",
+    )
+    client_password: str = Field(
+        default="password",
+        description="Password for the download client",
+    )
+    client_port: int = Field(
+        default=8080,
+        ge=1024,
+        le=65535,
+        description="Port for the download client",
+    )
 
 
 class APIConfig(BaseModel):
@@ -54,7 +110,7 @@ class ExternalAPIConfig(BaseModel):
     def validate_api_key(cls, v: str) -> str:
         """Validate API key format if provided."""
         if v and len(v) < 10:
-            logger.warning("API key seems too short, please verify")
+            logger.warning("API key seems to short, please verify")
         return v
 
 
@@ -96,6 +152,7 @@ class AppConfig(BaseSettings):
     external_apis: ExternalAPIConfig = Field(default_factory=ExternalAPIConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
+    download_clients: list[DownloadClientConfig] = Field(default_factory=list)
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -106,17 +163,17 @@ class AppConfig(BaseSettings):
         validate_assignment=True,
     )
 
-    @computed_field
-    @cached_property
-    def is_production(self) -> bool:
-        """Check if running in production environment."""
-        return self.environment.lower() == "production"
+    # @computed_field
+    # @cached_property
+    # def is_production(self) -> bool:
+    #     """Check if running in production environment."""
+    #     return self.environment.lower() == "production"
 
-    @computed_field
-    @cached_property
-    def is_development(self) -> bool:
-        """Check if running in development environment."""
-        return self.environment.lower() == "development"
+    # @computed_field
+    # @cached_property
+    # def is_development(self) -> bool:
+    #     """Check if running in development environment."""
+    #     return self.environment.lower() == "development"
 
     # Legacy compatibility properties
     @property
@@ -154,6 +211,17 @@ class AppConfig(BaseSettings):
                     )
 
         return config_dict
+
+
+def enum_to_value(obj):
+    logger.warning("Converting enum to value for serialization", obj)
+    if isinstance(obj, enum.Enum):
+        return obj.value
+    if isinstance(obj, dict):
+        return {k: enum_to_value(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [enum_to_value(i) for i in obj]
+    return obj
 
 
 class ConfigManager:
@@ -217,6 +285,7 @@ class ConfigManager:
 
             # Convert to dict and save using rtoml
             config_dict = config.model_dump(exclude={"app_name", "environment"})
+            config_dict = enum_to_value(config_dict)  # <-- ADD THIS LINE
 
             # rtoml.dump expects a file path, not a file object
             rtoml.dump(config_dict, self.config_path)
@@ -228,20 +297,11 @@ class ConfigManager:
             logger.error(f"Failed to save configuration with rtoml: {e}")
             raise
 
-    def save_config_as_string(self, config: AppConfig | None = None) -> str:
+    def save_config_as_string(self, config: AppConfig) -> str:
         """Save configuration as TOML string using rtoml."""
-        if config is None:
-            config = self._config
-
-        if config is None:
-            raise ValueError("No configuration to save")
-
-        try:
-            config_dict = config.model_dump(exclude={"app_name", "environment"})
-            return rtoml.dumps(config_dict)
-        except Exception as e:
-            logger.error(f"Failed to serialize configuration with rtoml: {e}")
-            raise
+        config_dict = config.model_dump()
+        config_dict = enum_to_value(config_dict)
+        return rtoml.dumps(config_dict)
 
     def load_config_from_string(self, toml_string: str) -> AppConfig:
         """Load configuration from TOML string using rtoml."""

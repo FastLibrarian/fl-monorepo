@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from fastlibrarian.routers import authors_router, books_router, series_router
+from fastlibrarian.routers import (
+    authors_router,
+    books_router,
+    config_router,
+    series_router,
+)
 
 app = FastAPI(
     title="FastLibrarian API",
@@ -20,3 +25,4 @@ app.add_middleware(
 app.include_router(authors_router)
 app.include_router(books_router)
 app.include_router(series_router)
+app.include_router(config_router)

@@ -2,8 +2,14 @@ from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.security import HTTPBearer
+from loguru import logger
 
-from fastlibrarian.config import AppConfig, config_manager, get_config
+from fastlibrarian.config import (
+    AppConfig,
+    DownloadClientType,
+    config_manager,
+    get_config,
+)
 
 router = APIRouter(prefix="/config", tags=["configuration"])
 security = HTTPBearer(auto_error=False)
@@ -22,12 +28,13 @@ async def get_raw_config() -> dict[str, str]:
     try:
         config = get_config()
         toml_string = config_manager.save_config_as_string(config)
-        return {"toml": toml_string}
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Failed to serialize config: {e!s}",
-        )
+        ) from e
+    return {"toml": toml_string}
 
 
 @router.get("/schema", response_model=dict[str, Any])
@@ -66,10 +73,14 @@ async def update_config(config_update: dict[str, Any]) -> dict[str, str]:
         config_manager.save_config(new_config)
         config_manager._config = new_config
 
-        return {"message": "Configuration updated successfully"}
-
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid configuration: {e!s}")
+        logger.error(f"Failed to update configuration: {e!s}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid configuration: {e!s}",
+        ) from e
+
+    return {"message": "Configuration updated successfully"}
 
 
 @router.put("/raw")
@@ -92,8 +103,6 @@ async def update_config_from_toml(
         # Save to file
         config_manager.save_config(new_config)
 
-        return {"message": "Configuration updated from TOML string successfully"}
-
     except HTTPException:
         raise
     except Exception as e:
@@ -101,6 +110,7 @@ async def update_config_from_toml(
             status_code=400,
             detail=f"Failed to update configuration: {e!s}",
         )
+    return {"message": "Configuration updated from TOML string successfully"}
 
 
 @router.post("/validate")
@@ -200,3 +210,9 @@ async def config_health_check() -> dict[str, Any]:
             "error": str(e),
             "toml_parser": "rtoml",
         }
+
+
+@router.get("/download-client-types")
+async def get_download_client_types() -> dict[str, list[str]]:
+    """Get valid download client types (enum values)."""
+    return {"types": [e.value for e in DownloadClientType]}
